@@ -25,6 +25,11 @@
 
 //Defines for sounds
 #define SOUND_SPAWN "buttons/lightswitch2.wav"
+#define SOUND_DELETE "physics/plaster/drywall_impact_hard1.wav"
+#define SOUND_MANIPSAVE "physics/plaster/ceiling_tile_impact_bullet2.wav"
+#define SOUND_MANIPDISCARD "physics/plaster/ceiling_tile_impact_bullet3.wav"
+#define SOUND_PAINT "physics/flesh/flesh_squishy_impact_hard2.wav"
+#define SOUND_EDIT "items/flashlight1.wav"
 
 enum ChatCommand {
 	String:command[32],
@@ -67,6 +72,11 @@ new g_iPropCount[MAXPLAYERS+1];
 new g_iLastProp[MAXPLAYERS+1];
 new g_iSelectedProp[MAXPLAYERS+1];
 
+//manipulate
+new Float:g_vecLockedAng[MAXPLAYERS+1][3];
+new Float:g_vecSelectedPropPrevPos[MAXPLAYERS+1][3];
+new Float:g_vecSelectedPropPrevAng[MAXPLAYERS+1][3];
+
 // Config parsing
 new g_configLevel = -1;
 
@@ -96,6 +106,11 @@ public OnMapStart() {
 	g_iBeamIndex = PrecacheModel("materials/sprites/purplelaser1.vmt");
 
 	PrecacheSound(SOUND_SPAWN);
+	PrecacheSound(SOUND_DELETE);
+	PrecacheSound(SOUND_MANIPSAVE);
+	PrecacheSound(SOUND_MANIPDISCARD);
+	PrecacheSound(SOUND_PAINT);
+	PrecacheSound(SOUND_EDIT);
 }
 
 /*
@@ -201,6 +216,7 @@ TFS_ShowMainMenu(client)
 	SetMenuExitBackButton(menu, false);
 	SetMenuTitle(menu, "TFS Redux V0.1 ALPHA\n ");
 	AddMenuItem(menu, "props", "Prop Spawner");
+	AddMenuItem(menu, "manip", "Manipulate Menu")
 	DisplayMenu(menu, client, 30);
 }
 
@@ -217,6 +233,10 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		if (StrEqual(item, "props"))
 		{
 			TFS_ShowPropMenu(param1);
+		}
+		else if (StrEqual(item, "manip"))
+		{
+			TFS_ManipMenu(param1);
 		}
 	}
 }
@@ -392,4 +412,148 @@ stock GetCollisionPoint(client, Float:pos[3])
 public bool:TraceEntityFilterPlayer(entity, contentsMask)
 {
 	return entity > MaxClients;
+}
+
+///////////////////
+/*Manipulate Menu*/
+///////////////////
+
+//Manipulate Menu
+TFS_ManipMenu(client)
+{
+	new target = GetClientAimTarget(client, false);
+	if(CanModifyProp(client, target))
+	{
+		//menu chunk
+		g_iSelectedProp[client] = target;
+		GetEntPropVector(g_iSelectedProp[client], Prop_Data, "m_angRotation", g_vecSelectedPropPrevAng[client]);
+		GetEntPropVector(g_iSelectedProp[client], Prop_Data, "m_vecOrigin", g_vecSelectedPropPrevPos[client]);
+		GetClientEyeAngles(client, g_vecLockedAng[client]);
+		SDKHook(client, SDKHook_PreThink, PropManip);
+		SetEntityMoveType(client, MOVETYPE_NONE);
+		
+		//prevents unable to re-grab prop after grab. 
+		SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+		
+		//draw menu
+		new Handle:menu = CreateMenu(Menu_Manip);
+		SetMenuTitle(menu, "WASD Moves The Prop | Jump or Duck moves Up or Down | Alt-Fire Rotates");
+		
+		AddMenuItem(menu, "1", "Save Your Changes");
+		AddMenuItem(menu, "2", "Discard Your Changes");
+		
+		SetMenuExitButton(menu, false);
+		DisplayMenu(menu, client, 720);
+	}
+}
+
+//Manipulate Menu options
+public Menu_Manip(Handle:menu, MenuAction:action, client, option)
+{
+	if(action == MenuAction_Select)
+	{
+		SDKUnhook(client, SDKHook_PreThink, PropManip);
+		SetEntityMoveType(client, MOVETYPE_WALK);
+		EmitSoundToClient(client, SOUND_MANIPSAVE, _, _, _, _, _, 50);
+		TFS_ShowMainMenu(client);
+		
+		if(option == 1)
+		TeleportEntity(g_iSelectedProp[client], g_vecSelectedPropPrevPos[client], g_vecSelectedPropPrevAng[client], NULL_VECTOR);
+		EmitSoundToClient(client, SOUND_MANIPDISCARD, _, _, _, _, _, 50);
+	}
+	else if(action == MenuAction_Cancel)
+		TFS_ShowMainMenu(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+//Manipulate Funcitonality
+public PropManip(client)
+{
+	decl Float:pos[3], Float:ang[3], Float:pAng[3], Float:pPos[3];
+	GetClientEyePosition(client, pos);
+	GetClientEyeAngles(client, ang);
+	//g_iSelectedProp[client] = target;
+	GetEntPropVector(g_iSelectedProp[client], Prop_Data, "m_angRotation", pAng);
+	GetEntPropVector(g_iSelectedProp[client], Prop_Data, "m_vecOrigin", pPos);
+	new btns = GetClientButtons(client);
+	
+	pos[2] -= 32.0;
+	
+	//Beam for manipulation
+	TE_SetupBeamPoints(pos, pPos, g_iBeamIndex, 0, 0, 0, 0.1, 4.0, 8.0, 0, 0.0, {236, 150, 55, 200}, 0);
+	TE_SendToAll(0.0);
+
+	//up + down
+	if(btns & IN_JUMP)
+	{
+		pPos[2] += 1.0;
+	}
+	else if(btns & IN_DUCK)
+	{
+		pPos[2] -= 1.0;
+	}	
+	// left + right
+	if(btns & IN_MOVELEFT)
+	{
+		pPos[0] -= 1.0;
+	}
+	else if(btns & IN_MOVERIGHT)
+	{
+		pPos[0] += 1.0;
+	}
+	
+	// forward + backward
+	if(btns & IN_FORWARD)
+	{
+		pPos[1] += 1.0;
+	}
+	else if(btns & IN_BACK)
+	{
+		pPos[1] -= 1.0;
+	}
+	
+	//Rotation
+	if(btns & IN_ATTACK2)
+	{
+		for(new i=0; i<=2; i++)
+		{
+			new change = RoundToNearest(g_vecLockedAng[client][i] - ang[i]);
+			pAng[i] += float(change);
+		}
+		TeleportEntity(client, NULL_VECTOR, g_vecLockedAng[client], NULL_VECTOR);
+	}
+	else
+	{
+		GetClientEyeAngles(client, g_vecLockedAng[client]);
+	}
+	
+	//apply modifications
+	TeleportEntity(g_iSelectedProp[client], pPos, pAng, NULL_VECTOR);	
+}
+
+///////////////////
+/*Gameplay Basics*/
+///////////////////
+
+//checks if in spec
+stock bool:g_bIsClientSpec(client)
+{
+	return GetClientTeam(client)<2;
+}
+
+//ownership checker
+bool:CanModifyProp(client, prop)
+{
+	if(prop <= GetMaxClients())
+	{
+		PrintToChat(client, "Not a valid prop!");
+		return false;
+	}
+	if(g_iOwner[prop] != client)
+	{
+		PrintToChat(client, "You don't own this prop!");
+		return false;
+	}
+	return true;
 }
