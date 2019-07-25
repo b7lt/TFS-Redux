@@ -4,7 +4,7 @@ IN ALPHA, PLEASE DON'T ACTUALLY USE YET.
 
 ## Features (so far):
 ```
-- Spawn in props! Edit the prop list by editing PropMenu.cfg.
+- Spawn in props! Edit the prop list by editing proplist.cfg.
 - Move and rotate props around via the Manipulate menu!
 ```
 
@@ -12,7 +12,7 @@ IN ALPHA, PLEASE DON'T ACTUALLY USE YET.
 
 ## Improvements upon the original:
 ```
-- No more hardcoded prop lists. Now, you can add and remove props via PropMenu.cfg
+- No more hardcoded prop lists. (This caused THOUSANDS more lines of unnecessary code)
 - TFS Admin Menu (WIP)
 - Now public
 - More coming soon.

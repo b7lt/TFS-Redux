@@ -9,7 +9,7 @@
 	- The {SuN} Community and Staff: For being part of the best gaming community I've ever been in. ALL of you are awesome!
 
 	Improvements upon the origin:
-	- No more hardcoded prop lists. Now, you can add and remove props via PropMenu.cfg
+	- No more hardcoded prop lists. Now, you can add and remove props via proplist.cfg
 	- TFS Admin Menu (WIP)
 	- Now public
 	- More coming soon.
@@ -91,7 +91,7 @@ public OnPluginStart() {
 	RegConsoleCmd("sm_tfs", Command_TFSMenu, "Open the TFS Menu", FCVAR_PLUGIN);
 
 	new String:hc[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/PropMenu.cfg");
+	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/proplist.cfg");
 	ParseConfigFile(hc);
 
 	AutoExecConfig(false);
@@ -99,7 +99,7 @@ public OnPluginStart() {
 
 public OnMapStart() {
 	new String:hc[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/PropMenu.cfg");
+	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/proplist.cfg");
 	ParseConfigFile(hc);
 	g_BeamSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_HaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
