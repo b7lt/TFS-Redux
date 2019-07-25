@@ -216,7 +216,9 @@ TFS_ShowMainMenu(client)
 	SetMenuExitBackButton(menu, false);
 	SetMenuTitle(menu, "TFS Redux V0.1 ALPHA\n ");
 	AddMenuItem(menu, "props", "Prop Spawner");
-	AddMenuItem(menu, "manip", "Manipulate Menu")
+	AddMenuItem(menu, "manip", "Manipulate Menu");
+	AddMenuItem(menu, "edit", "Edit Menu");
+	AddMenuItem(menu, "delete", "Delete Prop");
 	DisplayMenu(menu, client, 30);
 }
 
@@ -237,6 +239,14 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		else if (StrEqual(item, "manip"))
 		{
 			TFS_ManipMenu(param1);
+		}
+		else if (StrEqual(item, "edit"))
+		{
+			ShowMenu_Edit(param1);
+		}
+		else if (StrEqual(item, "delete"))
+		{
+			DeleteAimProp(param1);
 		}
 	}
 }
@@ -537,6 +547,523 @@ public PropManip(client)
 	TeleportEntity(g_iSelectedProp[client], pPos, pAng, NULL_VECTOR);	
 }
 
+
+/////////////
+/*Edit Menu*/
+/////////////
+
+ShowMenu_Edit(client)
+{
+	new Handle:menu = CreateMenu(Menu_Edit);
+	SetMenuTitle(menu, "TF2 Sandbox - Edit Menu");
+
+	AddMenuItem(menu, "1", "Open Adv. Rotation Menu");
+	AddMenuItem(menu, "2", "Straighten");
+	AddMenuItem(menu, "3", "Toggle collision");
+	AddMenuItem(menu, "4", "Set See Through");
+	AddMenuItem(menu, "5", "Desaturate");
+	AddMenuItem(menu, "6", "Undo Last Prop");
+	AddMenuItem(menu, "7", "Set Size Normal");
+	AddMenuItem(menu, "8", "Set Size Small");
+	AddMenuItem(menu, "9", "Set Size Large");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_Edit(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		switch(option)
+		{
+			//Open Advanced Rotation Menu
+			case 0: ShowMenu_AdvRotate(client);
+		}
+		
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//straighten
+				case 1:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//toggle collision
+				case 2:
+				{
+					new col = GetEntProp(target, Prop_Send, "m_nSolidType");
+					if(col != 0)
+					{
+						SetEntProp(target, Prop_Send, "m_nSolidType", 0);
+						PrintToChat(client, "Collision disabled.");
+						EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+					}
+					else
+					{
+						SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+						PrintToChat(client, "Collision enabled.");
+						EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+					}
+				}
+				//see through
+				case 3:
+				{
+					new offset = GetEntSendPropOffs(target, "m_clrRender");
+					SetEntData(target, offset + 3, 128, 1, true);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//Desaturate
+				case 4:
+				{
+					new offset = GetEntSendPropOffs(target, "m_clrRender");
+					for(new i=0; i<=2; i++)
+					{
+						if(GetEntData(target, offset + i, 1) == 0)
+							SetEntData(target, offset + i, 128, 1, true);
+					}
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//undo last prop
+				case 5:DeleteLastProp(client);
+				//resize normal
+				case 6:
+				{
+					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 1.0);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//resize small
+				case 7:
+				{
+					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 0.5);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//resize big
+				case 8:
+				{
+					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 1.2);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+			}
+		}
+		if(option > 0)
+			ShowMenu_Edit(client);
+		EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		TFS_ShowMainMenu(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+///////////////////////////
+/*advanced rotation menu */
+///////////////////////////
+
+ShowMenu_AdvRotate(client)
+{
+	new Handle:menu = CreateMenu(Menu_AdvRotate);
+	SetMenuTitle(menu, "TF2 Sandbox - Adv. Rotation Menu");
+	
+	AddMenuItem(menu, "1", "X-Rotation Menu");
+	AddMenuItem(menu, "2", "Y-Rotation Menu");
+	AddMenuItem(menu, "3", "Z-Rotation Menu");
+	AddMenuItem(menu, "4", "Rotate Upwards");
+	AddMenuItem(menu, "5", "Rotate Sideways");
+	AddMenuItem(menu, "6", "Straighten");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_AdvRotate(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		switch(option)
+		{
+			//X menu
+			case 0: ShowMenu_XRotate(client);
+			//Y menu
+			case 1: ShowMenu_YRotate(client);
+			//Z menu
+			case 2: ShowMenu_ZRotate(client);
+		}
+		
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//upwards
+				case 3:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 90.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//sideways
+				case 4:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 90.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+				//straighten
+				case 5:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+			}
+		}
+		if(option > 2)
+			ShowMenu_AdvRotate(client);
+		EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		ShowMenu_Edit(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+// X rotation Menu
+ShowMenu_XRotate(client)
+{
+	new Handle:menu = CreateMenu(Menu_xRotate);
+	SetMenuTitle(menu, "TF2 Sandbox - Adv. X Rotation Menu");
+	
+	AddMenuItem(menu, "1", "X Rotation +1");
+	AddMenuItem(menu, "2", "X rotation +5");
+	AddMenuItem(menu, "3", "X rotation +10");
+	AddMenuItem(menu, "4", "X Rotation +15");
+	AddMenuItem(menu, "5", "X Rotation +30");
+	AddMenuItem(menu, "6", "X Rotation +90");
+	AddMenuItem(menu, "7", "Straighten");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_xRotate(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//y +1
+				case 0:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 1.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +5
+				case 1:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 5.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +10
+				case 2:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 10.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +15
+				case 3:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 15.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +30
+				case 4:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 30.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +90
+				case 5:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[0] += 90.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//straighten
+				case 6:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+			}
+		}
+		ShowMenu_XRotate(client);
+		EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		ShowMenu_AdvRotate(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+// Y rotation Menu
+ShowMenu_YRotate(client)
+{
+	new Handle:menu = CreateMenu(Menu_yRotate);
+	SetMenuTitle(menu, "TF2 Sandbox - Adv. Y Rotation Menu");
+	
+	AddMenuItem(menu, "1", "Y Rotation +1");
+	AddMenuItem(menu, "2", "Y rotation +5");
+	AddMenuItem(menu, "3", "Y rotation +10");
+	AddMenuItem(menu, "4", "Y Rotation +15");
+	AddMenuItem(menu, "5", "Y Rotation +30");
+	AddMenuItem(menu, "6", "Y Rotation +90");
+	AddMenuItem(menu, "7", "Straighten");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_yRotate(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//y +1
+				case 0:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 1.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +5
+				case 1:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 5.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +10
+				case 2:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 10.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +15
+				case 3:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 15.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +30
+				case 4:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 30.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//y +90
+				case 5:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[1] += 90.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//straighten
+				case 6:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+			}
+		}
+		ShowMenu_YRotate(client);
+		EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		ShowMenu_AdvRotate(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+// z rotation Menu
+ShowMenu_ZRotate(client)
+{
+	new Handle:menu = CreateMenu(Menu_zRotate);
+	SetMenuTitle(menu, "TF2 Sandbox - Adv. Z Rotation Menu");
+	
+	AddMenuItem(menu, "1", "Z Rotation +1");
+	AddMenuItem(menu, "2", "Z rotation +5");
+	AddMenuItem(menu, "3", "Z rotation +10");
+	AddMenuItem(menu, "4", "Z Rotation +15");
+	AddMenuItem(menu, "5", "Z Rotation +30");
+	AddMenuItem(menu, "6", "Z Rotation +90");
+	AddMenuItem(menu, "7", "Straighten");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_zRotate(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//z +1
+				case 0:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 1.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//z +5
+				case 1:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 5.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//Z +10
+				case 2:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 10.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//Z +15
+				case 3:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 15.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//Z +30
+				case 4:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 30.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//Z +90
+				case 5:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					new Float:ang[3];
+					Entity_GetAbsAngles(target, ang);
+					ang[2] += 90.0;
+					TeleportEntity(target, NULL_VECTOR, ang, NULL_VECTOR);
+				}
+				//straighten
+				case 6:
+				{
+					//Resolidates prop to prevent unselectable prop glitch.
+					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
+					decl Float:f_angles[3];
+					f_angles[0] = 0.0, f_angles[1] = 0.0, f_angles[2] = 0.0;
+					TeleportEntity(target, NULL_VECTOR, f_angles, NULL_VECTOR);
+					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+				}
+			}
+		}
+		ShowMenu_ZRotate(client);
+		EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		ShowMenu_AdvRotate(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+
 ///////////////////
 /*Gameplay Basics*/
 ///////////////////
@@ -561,4 +1088,71 @@ bool:CanModifyProp(client, prop)
 		return false;
 	}
 	return true;
+}
+
+/////////////////////
+/*Dissolve Function*/
+/////////////////////
+
+//Dissolve function
+DeleteProp(prop)
+{
+	g_iPropCount[g_iOwner[prop]]--;
+	Effect_DissolveEntity(prop, DISSOLVE_CORE);
+	g_iOwner[prop] = 0;
+	g_bKillProp[prop] = false;
+}
+
+//////////////////
+/*Undo Last Prop*/
+//////////////////
+
+//Undoes last prop using dissolve function
+DeleteLastProp(client)
+{
+	if(CanModifyProp(client, g_iLastProp[client]))
+	{
+		DeleteProp(g_iLastProp[client]);
+		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
+		g_iLastProp[client] = 0;
+	}
+	TFS_ShowMainMenu(client);
+}
+
+//Undo Command version (doesn't kick back to main menu)
+DeleteLastPropCmd(client)
+{
+	if(CanModifyProp(client, g_iLastProp[client]))
+	{
+		DeleteProp(g_iLastProp[client]);
+		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
+		g_iLastProp[client] = 0;
+	}
+}
+
+///////////////
+/*Delete Prop*/
+///////////////
+
+//Deletes prop using dissolve function
+DeleteAimProp(client)
+{
+	new target = GetClientAimTarget(client, false);
+	if(CanModifyProp(client, target))
+	{
+		DeleteProp(target);
+		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
+	}
+	TFS_ShowMainMenu(client);
+}
+
+//Delete command version (doesn't kick back to main menu)
+DeleteAimPropCmd(client)
+{
+	new target = GetClientAimTarget(client, false);
+	if(CanModifyProp(client, target))
+	{
+		DeleteProp(target);
+		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
+	}
 }
