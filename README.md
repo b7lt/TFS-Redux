@@ -6,8 +6,7 @@ IN ALPHA, PLEASE DON'T ACTUALLY USE YET.
 ```
 - Spawn in props! Edit the prop list by editing proplist.cfg.
 - Move and rotate props around via the Manipulate menu!
-- Color props with the Paint menu!
-- Edit various properties of props, such as rotation, collision, transparency, saturation, and size with the Edit menu!
+- Edit various properties of props, such as rotation, color, collision, transparency, saturation, and size with the Edit menu!
 - Delete a single prop you are looking at, or clear all of your props at once!
 - Cvar that sets everyone's personal prop limit!: sm_tfs_proplimit (def. 50)
 ```
