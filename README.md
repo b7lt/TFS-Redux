@@ -1,5 +1,5 @@
 # TFS Redux
-Team Fortress Sandbox Redux. A totally rewritten and improved version of the original TFS plugin developed by KTM.\
+Team Fortress Sandbox Redux. A rewritten and improved version of the original TFS plugin developed by KTM.\
 IN ALPHA, PLEASE DON'T ACTUALLY USE YET.
 
 ## Features (so far):
