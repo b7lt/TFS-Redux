@@ -85,10 +85,13 @@ new g_iBeamIndex;
 new g_BeamSprite;
 new g_HaloSprite;
 
+// Cvars
+new Handle:prop_limit;
+
 public OnPluginStart() {
-	CreateConVar("sm_propmenu_version", PLUGIN_VERSION, "Prop menu version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-//	g_cvarWelcome = CreateConVar("sm_propmenu_welcome", "1", "Show welcome message to newly connected users.", FCVAR_PLUGIN);
 	RegConsoleCmd("sm_tfs", Command_TFSMenu, "Open the TFS Menu", FCVAR_PLUGIN);
+
+	prop_limit = CreateConVar("sm_tfs_proplimit", "50", "Prop Limit for each user.", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
 	new String:hc[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/proplist.cfg");
@@ -112,19 +115,6 @@ public OnMapStart() {
 	PrecacheSound(SOUND_PAINT);
 	PrecacheSound(SOUND_EDIT);
 }
-
-/*
-public OnClientPutInServer(client) {
-	if (GetConVarBool(g_cvarWelcome))
-		CreateTimer(30.0, Timer_WelcomeMessage, client);
-}
-
-
-public Action:Timer_WelcomeMessage(Handle:timer, any:client) {
-	if (GetConVarBool(g_cvarWelcome) && IsClientConnected(client) && IsClientInGame(client) && !IsFakeClient(client))
-		PrintToChat(client, "\x01[SM] For Prop, type \x04!PropMenu\x01 in chat");
-}
-*/
 
 bool:ParseConfigFile(const String:file[]) {
 	if (g_PropMenus != INVALID_HANDLE) {
@@ -217,6 +207,7 @@ TFS_ShowMainMenu(client)
 	SetMenuTitle(menu, "TFS Redux V0.1 ALPHA\n ");
 	AddMenuItem(menu, "props", "Prop Spawner");
 	AddMenuItem(menu, "manip", "Manipulate Menu");
+	AddMenuItem(menu, "paint", "Paint Menu")
 	AddMenuItem(menu, "edit", "Edit Menu");
 	AddMenuItem(menu, "delete", "Delete Prop");
 	AddMenuItem(menu, "clearall", "Clear All Props");
@@ -240,6 +231,10 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		else if (StrEqual(item, "manip"))
 		{
 			TFS_ManipMenu(param1);
+		}
+		else if (StrEqual(item, "paint"))
+		{
+			ShowMenu_Color(param1);
 		}
 		else if (StrEqual(item, "edit"))
 		{
@@ -346,9 +341,9 @@ public TFS_CustomMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
 		GetMenuItem(menu, param2, itemval, sizeof(itemval));
 		if (strlen(itemval) > 0)
 		{
-			if((g_iPropCount[param1] >= 100) && !(GetUserFlagBits(param1) & ADMFLAG_ROOT))
+			if((g_iPropCount[param1] >= prop_limit) && !(GetUserFlagBits(param1) & ADMFLAG_ROOT))
 			{
-				PrintToChat(param1, "You can't spawn any more props. Delete Some to spawn more!");
+				PrintToChat(param1, "You can't spawn any more props. Delete some to spawn more!");
 				TFS_ShowMainMenu(param1);
 				return;
 			}
@@ -560,7 +555,7 @@ public PropManip(client)
 ShowMenu_Edit(client)
 {
 	new Handle:menu = CreateMenu(Menu_Edit);
-	SetMenuTitle(menu, "TF2 Sandbox - Edit Menu");
+	SetMenuTitle(menu, "TFS Redux - Edit Menu");
 
 	AddMenuItem(menu, "1", "Open Adv. Rotation Menu");
 	AddMenuItem(menu, "2", "Straighten");
@@ -674,7 +669,7 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 ShowMenu_AdvRotate(client)
 {
 	new Handle:menu = CreateMenu(Menu_AdvRotate);
-	SetMenuTitle(menu, "TF2 Sandbox - Adv. Rotation Menu");
+	SetMenuTitle(menu, "TFS Redux - Adv. Rotation Menu");
 	
 	AddMenuItem(menu, "1", "X-Rotation Menu");
 	AddMenuItem(menu, "2", "Y-Rotation Menu");
@@ -751,7 +746,7 @@ public Menu_AdvRotate(Handle:menu, MenuAction:action, client, option)
 ShowMenu_XRotate(client)
 {
 	new Handle:menu = CreateMenu(Menu_xRotate);
-	SetMenuTitle(menu, "TF2 Sandbox - Adv. X Rotation Menu");
+	SetMenuTitle(menu, "TFS Redux - Adv. X Rotation Menu");
 	
 	AddMenuItem(menu, "1", "X Rotation +1");
 	AddMenuItem(menu, "2", "X rotation +5");
@@ -858,7 +853,7 @@ public Menu_xRotate(Handle:menu, MenuAction:action, client, option)
 ShowMenu_YRotate(client)
 {
 	new Handle:menu = CreateMenu(Menu_yRotate);
-	SetMenuTitle(menu, "TF2 Sandbox - Adv. Y Rotation Menu");
+	SetMenuTitle(menu, "TFS Redux - Adv. Y Rotation Menu");
 	
 	AddMenuItem(menu, "1", "Y Rotation +1");
 	AddMenuItem(menu, "2", "Y rotation +5");
@@ -965,7 +960,7 @@ public Menu_yRotate(Handle:menu, MenuAction:action, client, option)
 ShowMenu_ZRotate(client)
 {
 	new Handle:menu = CreateMenu(Menu_zRotate);
-	SetMenuTitle(menu, "TF2 Sandbox - Adv. Z Rotation Menu");
+	SetMenuTitle(menu, "TFS Redux - Adv. Z Rotation Menu");
 	
 	AddMenuItem(menu, "1", "Z Rotation +1");
 	AddMenuItem(menu, "2", "Z rotation +5");
@@ -1206,4 +1201,84 @@ ClearAllProps(client)
 	}
 	if(IsValidEntity(client))
 		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
+}
+
+//////////////
+/*Paint Menu*/
+//////////////
+
+ShowMenu_Color(client)
+{
+	new Handle:menu = CreateMenu(Menu_Color);
+	SetMenuTitle(menu, "TFS Redux - Paint Menu");
+	
+	AddMenuItem(menu, "1", "Normal");
+	AddMenuItem(menu, "2", "Red");
+	AddMenuItem(menu, "3", "Green");
+	AddMenuItem(menu, "4", "Blue");
+	AddMenuItem(menu, "5", "Yellow");
+	AddMenuItem(menu, "6", "Pale Blue");
+	AddMenuItem(menu, "7", "Light Green");
+	AddMenuItem(menu, "8", "Orange");
+	AddMenuItem(menu, "9", "Cyan");
+	AddMenuItem(menu, "10", "Brown");
+	AddMenuItem(menu, "11", "Lavender");
+	AddMenuItem(menu, "12", "Pink");
+	AddMenuItem(menu, "13", "Purple");
+	AddMenuItem(menu, "14", "Gray");		
+	AddMenuItem(menu, "15", "Black");
+	
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+public Menu_Color(Handle:menu, MenuAction:action, client, option)
+{	
+	if(action == MenuAction_Select)
+	{
+		new target = GetClientAimTarget(client, false);
+		if(CanModifyProp(client, target))
+		{
+			switch(option)
+			{
+				//normal
+				case 0: SetEntityRenderColor(target, 255, 255, 255, 255);
+				//red
+				case 1: SetEntityRenderColor(target, 255, 0, 0, 255);
+				//Green
+				case 2: SetEntityRenderColor(target, 102, 255, 102, 255);
+				//blue
+				case 3: SetEntityRenderColor(target, 0, 0, 255, 255);
+				//yellow
+				case 4: SetEntityRenderColor(target, 255, 255, 0, 255);
+				//Pale Blue
+				case 5: SetEntityRenderColor(target, 0, 128, 255, 255);
+				//Light Green
+				case 6: SetEntityRenderColor(target, 153, 204, 204, 255);
+				//orange
+				case 7: SetEntityRenderColor(target, 255, 97, 3, 255);
+				//cyan
+				case 8: SetEntityRenderColor(target, 0, 255, 255, 255);
+				//brown
+				case 9: SetEntityRenderColor(target, 139, 69, 19, 255);	
+				//Lavender
+				case 10: SetEntityRenderColor(target, 230, 230, 250, 255);
+				//pink
+				case 11: SetEntityRenderColor(target, 255, 0, 255, 255);
+				//purple
+				case 12: SetEntityRenderColor(target, 125, 38, 205, 255);
+				//gray
+				case 13: SetEntityRenderColor(target, 110, 123, 139, 255);
+				//black
+				case 14: SetEntityRenderColor(target, 0, 0, 0, 255);
+			}
+		}
+		ShowMenu_Color(client);
+		/*if(option > 7)
+			ClientCommand(client, "slot9");*/
+		EmitSoundToClient(client, SOUND_PAINT, _, _, _, _, _, 120);
+	}
+	else if(action == MenuAction_Cancel)
+		TFS_ShowMainMenu(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
 }
