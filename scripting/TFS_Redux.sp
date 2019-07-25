@@ -207,7 +207,6 @@ TFS_ShowMainMenu(client)
 	SetMenuTitle(menu, "TFS Redux V0.1 ALPHA\n ");
 	AddMenuItem(menu, "props", "Prop Spawner");
 	AddMenuItem(menu, "manip", "Manipulate Menu");
-	AddMenuItem(menu, "paint", "Paint Menu")
 	AddMenuItem(menu, "edit", "Edit Menu");
 	AddMenuItem(menu, "delete", "Delete Prop");
 	AddMenuItem(menu, "clearall", "Clear All Props");
@@ -231,10 +230,6 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		else if (StrEqual(item, "manip"))
 		{
 			TFS_ManipMenu(param1);
-		}
-		else if (StrEqual(item, "paint"))
-		{
-			ShowMenu_Color(param1);
 		}
 		else if (StrEqual(item, "edit"))
 		{
@@ -558,14 +553,15 @@ ShowMenu_Edit(client)
 	SetMenuTitle(menu, "TFS Redux - Edit Menu");
 
 	AddMenuItem(menu, "1", "Open Adv. Rotation Menu");
-	AddMenuItem(menu, "2", "Straighten");
-	AddMenuItem(menu, "3", "Toggle collision");
-	AddMenuItem(menu, "4", "Set See Through");
-	AddMenuItem(menu, "5", "Desaturate");
-	AddMenuItem(menu, "6", "Undo Last Prop");
-	AddMenuItem(menu, "7", "Set Size Normal");
-	AddMenuItem(menu, "8", "Set Size Small");
-	AddMenuItem(menu, "9", "Set Size Large");
+	AddMenuItem(menu, "2", "Color/Paint");
+	AddMenuItem(menu, "3", "Straighten");
+	AddMenuItem(menu, "4", "Toggle collision");
+	AddMenuItem(menu, "5", "Set See Through");
+	AddMenuItem(menu, "6", "Desaturate");
+	AddMenuItem(menu, "7", "Undo Last Prop");
+	AddMenuItem(menu, "8", "Set Size Normal");
+	AddMenuItem(menu, "9", "Set Size Small");
+	AddMenuItem(menu, "10", "Set Size Large");
 	
 	SetMenuExitButton(menu, true);
 	DisplayMenu(menu, client, 720);
@@ -577,7 +573,16 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 		switch(option)
 		{
 			//Open Advanced Rotation Menu
-			case 0: ShowMenu_AdvRotate(client);
+			case 0: 
+			{
+				ShowMenu_AdvRotate(client);
+				return;
+			}
+			case 1:
+			{
+				ShowMenu_Color(client);
+				return;
+			}
 		}
 		
 		new target = GetClientAimTarget(client, false);
@@ -586,7 +591,7 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 			switch(option)
 			{
 				//straighten
-				case 1:
+				case 2:
 				{
 					//Resolidates prop to prevent unselectable prop glitch.
 					SetEntProp(target, Prop_Send, "m_nSolidType", 6);
@@ -596,7 +601,7 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
 				}
 				//toggle collision
-				case 2:
+				case 3:
 				{
 					new col = GetEntProp(target, Prop_Send, "m_nSolidType");
 					if(col != 0)
@@ -613,14 +618,14 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 					}
 				}
 				//see through
-				case 3:
+				case 4:
 				{
 					new offset = GetEntSendPropOffs(target, "m_clrRender");
 					SetEntData(target, offset + 3, 128, 1, true);
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
 				}
 				//Desaturate
-				case 4:
+				case 5:
 				{
 					new offset = GetEntSendPropOffs(target, "m_clrRender");
 					for(new i=0; i<=2; i++)
@@ -631,21 +636,21 @@ public Menu_Edit(Handle:menu, MenuAction:action, client, option)
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
 				}
 				//undo last prop
-				case 5:DeleteLastProp(client);
+				case 6:DeleteLastProp(client);
 				//resize normal
-				case 6:
+				case 7:
 				{
 					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 1.0);
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
 				}
 				//resize small
-				case 7:
+				case 8:
 				{
 					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 0.5);
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
 				}
 				//resize big
-				case 8:
+				case 9:
 				{
 					SetEntPropFloat(target, Prop_Send, "m_flModelScale", 1.2);
 					EmitSoundToClient(client, SOUND_EDIT, _, _, _, _, _, 120);
