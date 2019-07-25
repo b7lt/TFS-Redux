@@ -332,13 +332,18 @@ public TFS_CustomMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
 		if (strlen(itemval) > 0)
 		{
 			if((g_iPropCount[param1] >= 100) && !(GetUserFlagBits(param1) & ADMFLAG_ROOT))
-				{
-					PrintToChat(param1, "You can't spawn any more props. Delete Some to spawn more!");
-					TFS_ShowMainMenu(param1);
-					return;
-				}
-			PrintToChatAll(itemval)
-			//FakeClientCommand(param1, itemval);
+			{
+				PrintToChat(param1, "You can't spawn any more props. Delete Some to spawn more!");
+				TFS_ShowMainMenu(param1);
+				return;
+			}
+			if(g_bIsClientSpec(param1) == 1)
+			{
+				PrintToChat(param1, "You cannot build in Spectator! Please join either RED or BLU!");
+				TFS_ShowMainMenu(param1);
+				return;
+			}
+//			PrintToChatAll(itemval)
 			decl ent;
 			new Float:AbsAngles[3], Float:ClientOrigin[3], Float:Origin[3], Float:pos[3], Float:beampos[3], Float:PropOrigin[3], Float:EyeAngles[3];
 						
