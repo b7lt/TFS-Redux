@@ -19,9 +19,7 @@ IN ALPHA, PLEASE DON'T ACTUALLY USE YET.
 ```
 
 ## CREDITS:
-```
 - KTM: He developed the original TFS Plugin that was used for the {SuN} and {SuN} Revived servers.
 - chundo: His 'Help Menu' plugin helped me learn how to use config files to create menus.
 - Xeon: Owner of Neogenesis Network. Although he didn't help me in this project, he's helped me in the past with my development adventures. This guy is awesome.
 - The {SuN} Community and Staff: For being part of the best gaming community I've ever been in. ALL of you are awesome!
-```
