@@ -219,6 +219,7 @@ TFS_ShowMainMenu(client)
 	AddMenuItem(menu, "manip", "Manipulate Menu");
 	AddMenuItem(menu, "edit", "Edit Menu");
 	AddMenuItem(menu, "delete", "Delete Prop");
+	AddMenuItem(menu, "clearall", "Clear All Props");
 	DisplayMenu(menu, client, 30);
 }
 
@@ -247,6 +248,10 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		else if (StrEqual(item, "delete"))
 		{
 			DeleteAimProp(param1);
+		}
+		else if (StrEqual(item, "clearall"))
+		{
+			ShowMenu_Clear(param1);
 		}
 	}
 }
@@ -1155,4 +1160,50 @@ DeleteAimPropCmd(client)
 		DeleteProp(target);
 		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
 	}
+}
+
+////////////////////////
+/*Clear All Props Menu*/
+////////////////////////
+
+ShowMenu_Clear(client)
+{
+	new Handle:menu = CreateMenu(Menu_Clear);
+	SetMenuTitle(menu, "Are you sure you want to clear all your props?");
+	
+	AddMenuItem(menu, "1", "Yes");
+	AddMenuItem(menu, "2", "No");
+	
+	SetMenuExitButton(menu, false);
+	DisplayMenu(menu, client, 720);
+
+}
+
+public Menu_Clear(Handle:menu, MenuAction:action, client, option)
+{
+	if(action == MenuAction_Select)
+	{
+		if(option == 0)
+		{
+			ClearAllProps(client);
+		}
+		TFS_ShowMainMenu(client);
+	}
+	else if(action == MenuAction_Cancel)
+		TFS_ShowMainMenu(client);
+	else if(action == MenuAction_End)
+		CloseHandle(menu);
+}
+
+//prop clearer
+ClearAllProps(client)
+{
+	for(new i=1; i<sizeof(g_iOwner); i++)
+	{
+		if(g_iOwner[i] != client)
+			continue;
+		DeleteProp(i);
+	}
+	if(IsValidEntity(client))
+		EmitSoundToClient(client, SOUND_DELETE, _, _, _, _, _, 50);
 }
