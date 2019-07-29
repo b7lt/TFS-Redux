@@ -20,6 +20,7 @@
 #include <sdkhooks>
 #include <tf2>
 #include <tf2_stocks>
+#include <adminmenu>
 
 #define PLUGIN_VERSION "0.1"
 
@@ -90,6 +91,7 @@ new Handle:prop_limit;
 
 public OnPluginStart() {
 	RegConsoleCmd("sm_tfs", Command_TFSMenu, "Open the TFS Menu", FCVAR_PLUGIN);
+	RegAdminCmd("sm_tfs_admin", Command_TFSAdmin, ADMFLAG_GENERIC);
 
 	prop_limit = CreateConVar("sm_tfs_proplimit", "50", "Prop Limit for each user.", FCVAR_PLUGIN|FCVAR_NOTIFY);
 
@@ -210,6 +212,10 @@ TFS_ShowMainMenu(client)
 	AddMenuItem(menu, "edit", "Edit Menu");
 	AddMenuItem(menu, "delete", "Delete Prop");
 	AddMenuItem(menu, "clearall", "Clear All Props");
+	if (CheckCommandAccess(client, "sm_tfs_admin", ADMFLAG_GENERIC))
+	{
+		AddMenuItem(menu, "admin", "Admin Menu");
+	}
 	DisplayMenu(menu, client, 30);
 }
 
@@ -242,6 +248,10 @@ public TFS_MainMenuHandler(Handle:menu, MenuAction:action, param1, param2)
 		else if (StrEqual(item, "clearall"))
 		{
 			ShowMenu_Clear(param1);
+		}
+		else if (StrEqual(item, "admin"))
+		{
+			TFS_ShowAdminMenu(param1);
 		}
 	}
 }
@@ -1095,6 +1105,16 @@ bool:CanModifyProp(client, prop)
 	return true;
 }
 
+bool:ValidProp(client, prop)
+{
+	if(prop <= GetMaxClients())
+	{
+		PrintToChat(client, "Not a valid prop!");
+		return false;
+	}
+	return true;
+}
+
 /////////////////////
 /*Dissolve Function*/
 /////////////////////
@@ -1287,3 +1307,167 @@ public Menu_Color(Handle:menu, MenuAction:action, client, option)
 	else if(action == MenuAction_End)
 		CloseHandle(menu);
 }
+
+///////////////
+/*Admin Menus*/
+///////////////
+
+public Action:Command_TFSAdmin(client, args) 
+{
+	TFS_ShowAdminMenu(client);
+	return Plugin_Handled;
+}
+
+TFS_ShowAdminMenu(client)
+{
+	new Handle:menu = CreateMenu(AdminMenu);
+	SetMenuTitle(menu, "TFS Redux - Admin Menu");
+	
+	AddMenuItem(menu, "to", " Take Ownership of Prop");
+	AddMenuItem(menu, "fcp", "Force-Clear a Player's Props")
+
+	SetMenuExitBackButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+
+public int AdminMenu(Menu menu, MenuAction action, int client, int option)
+{
+	switch (action)
+	{
+		case MenuAction_Cancel:
+		{
+			TFS_ShowMainMenu(client);
+		}
+		case MenuAction_Select:
+		{
+
+			new String:item[64];
+			GetMenuItem(menu, option, item, sizeof(item));
+
+			if (StrEqual(item, "to"))
+			{
+                TakeOwnership(client);
+			}
+			else if (StrEqual(item, "fcp"))
+			{
+				ShowMenu_AdminFCP(client);
+			}
+		}
+
+		case MenuAction_End:
+		{
+			CloseHandle(menu);
+		}
+
+	}
+	return 0;
+}
+
+ShowMenu_AdminFCP(client)
+{
+	new Handle:menu = CreateMenu(AdminFCP);
+	SetMenuTitle(menu, "TFS Redux - Select a player to clear their props!");
+	
+/*	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (!IsClientInGame(i)) continue;
+
+		decl String:sID[8], String:sName[32];
+
+		GetClientName(i, sName, sizeof(sName));
+		Format(sID, sizeof(sID), "%d", i);
+
+		AddMenuItem(menu, sID, sName);
+	} */
+
+	AddTargetsToMenu(menu, client, true, false);
+
+	SetMenuExitBackButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+
+public int AdminFCP(Menu menu, MenuAction action, int client, int param2)
+{
+	switch (action)
+	{
+		case MenuAction_Cancel:
+		{
+			TFS_ShowAdminMenu(client);
+		}
+		case MenuAction_Select:
+        {    
+			new String:sInfo[MAX_NAME_LENGTH];
+			GetMenuItem(menu, param2, sInfo, sizeof(sInfo));
+			new target = GetClientOfUserId(StringToInt(sInfo));
+			ClearAllProps(target);
+			PrintToChat(client, "Removed props of %N", target);
+//			ForceClearProps(client, sInfo);
+//			PrintToChat(client, "test1 %s", sInfo);
+//			PrintToChat(client, "test2 %N", param2);
+//			for (int i = 1; i <= MaxClients; i++)
+//			{
+//				if (!IsClientInGame(i) && (StringToInt(sInfo) != i)) continue;
+//
+//				PrintToChat(client, "That player's name is: %N", i);
+//				ForceClearProps(client, i)
+//				return;
+//			}  
+        }
+
+		case MenuAction_End:
+		{
+			CloseHandle(menu);
+		}
+
+	}
+	return 0;
+}
+
+/////////////////
+/*Admin Actions*/
+/////////////////
+
+TakeOwnership(client)
+{
+	new target = GetClientAimTarget(client, false);
+	if (client != g_iOwner[target] && g_iOwner[target])
+	{
+		g_iOwner[target] = client;
+		PrintToChat(client, "Took Ownership of this Prop!")
+	}
+}
+
+/*
+ForceClearProps(client, args)
+{
+	char arg[65];
+	GetCmdArg(1, arg, sizeof(arg));
+	
+	char target_name[MAX_TARGET_LENGTH];
+	int target_list[MAXPLAYERS], target_count;
+	bool tn_is_ml;
+	// Try and find a matching player
+	if ((target_count = ProcessTargetString(
+			arg,
+			client,
+			target_list,
+			MAXPLAYERS,
+			COMMAND_FILTER_ALIVE,
+			target_name,
+			sizeof(target_name),
+			tn_is_ml)) <= 0)
+	{
+		ReplyToTargetError(client, target_count);
+		return Plugin_Handled;
+	}
+
+	for (int i = 0; i < target_count; i++)
+	{
+		PrintToChatAll("%s", target_list[i]);
+		ClearAllProps(target_list[i]);
+	}
+	
+	ReplyToCommand(client, "Player props cleared");
+	return Plugin_Handled;
+}
+*/
