@@ -34,4 +34,5 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 - Personal player settings (manipulate beam color, POSSIBLE different entity types such as prop_physics, etc)
 - Dead/Spec Player Checks
 - Support for no build zones (prob with named trigger_multiple)
+- Another config file for setting things such as sounds, manipulation beam textures, etc
 ```
