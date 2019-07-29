@@ -32,4 +32,6 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 - Finish the Admin Menu (need to add resetting player propcount, or setting it to the max)
 - Add more props to proplist.cfg (event props, weapon mdls, hat mdls, etc)
 - Personal player settings (manipulate beam color, POSSIBLE different entity types such as prop_physics, etc)
+- Dead/Spec Player Checks
+- Support for no build zones (prob with named trigger_multiple)
 ```
