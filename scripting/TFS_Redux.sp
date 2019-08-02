@@ -7,12 +7,6 @@
 	- chundo: His 'Help Menu' plugin helped me learn how to use config files to create menus.
 	- Xeon: Owner of Neogenesis Network. Although he didn't help me in this project, he's helped me in the past with my development adventures. This guy is awesome.
 	- The {SuN} Community and Staff: For being part of the best gaming community I've ever been in. ALL of you are awesome!
-
-	Improvements upon the origin:
-	- No more hardcoded prop lists. Now, you can add and remove props via proplist.cfg
-	- TFS Admin Menu (WIP)
-	- Now public
-	- More coming soon.
 */
 #include <sourcemod>
 #include <sdktools>
@@ -22,7 +16,7 @@
 #include <tf2_stocks>
 #include <adminmenu>
 
-#define PLUGIN_VERSION "0.1"
+#define PLUGIN_VERSION "0.2"
 
 //Defines for sounds
 #define SOUND_SPAWN "buttons/lightswitch2.wav"
@@ -60,8 +54,6 @@ public Plugin:myinfo =
 }
 //Defines for sounds
 #define SOUND_SPAWN "buttons/lightswitch2.wav"
-// CVars
-//new Handle:g_cvarWelcome = INVALID_HANDLE;
 
 // Prop menus
 new Handle:g_PropMenus = INVALID_HANDLE;
@@ -106,6 +98,7 @@ public OnMapStart() {
 	new String:hc[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/proplist.cfg");
 	ParseConfigFile(hc);
+
 	g_BeamSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_HaloSprite = PrecacheModel("materials/sprites/halo01.vmt");
 	g_iBeamIndex = PrecacheModel("materials/sprites/purplelaser1.vmt");
@@ -206,7 +199,7 @@ TFS_ShowMainMenu(client)
 {
 	new Handle:menu = CreateMenu(TFS_MainMenuHandler);
 	SetMenuExitBackButton(menu, false);
-	SetMenuTitle(menu, "TFS Redux V0.1 ALPHA\n ");
+	SetMenuTitle(menu, "TFS Redux V0.2 ALPHA\n ");
 	AddMenuItem(menu, "props", "Prop Spawner");
 	AddMenuItem(menu, "manip", "Manipulate Menu");
 	AddMenuItem(menu, "edit", "Edit Menu");
@@ -346,7 +339,8 @@ public TFS_CustomMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
 		GetMenuItem(menu, param2, itemval, sizeof(itemval));
 		if (strlen(itemval) > 0)
 		{
-			if((g_iPropCount[param1] >= prop_limit) && !(GetUserFlagBits(param1) & ADMFLAG_ROOT))
+			new prop_limit_ = GetConVarInt(prop_limit);
+			if((g_iPropCount[param1] >= prop_limit_))
 			{
 				PrintToChat(param1, "You can't spawn any more props. Delete some to spawn more!");
 				TFS_ShowMainMenu(param1);
@@ -395,14 +389,14 @@ public TFS_CustomMenuHandler(Handle:menu, MenuAction:action, param1, param2) {
 			EmitSoundToClient(param1, SOUND_SPAWN, _, _, _, _, _, 50);
 
 			//anti-stuck protection
-/*			for (new i=1; i <= MaxClients; i++)
+			for (new i=1; i <= MaxClients; i++)
 				if (IsClientInGame(i) && IsPlayerAlive(i))
 					if (IsStuckInEnt(i, ent))
 					{
-						PrintToChat(client, "\x01You cannot build on \x04Players!");
+						PrintToChat(param1, "\x01You cannot build on \x04Players!");
 						DeleteProp(ent);
 						break;
-					} */
+					}
 			TFS_ShowPropMenu(param1);
 		}
 	} else if (action == MenuAction_Cancel) {
@@ -472,6 +466,14 @@ public Menu_Manip(Handle:menu, MenuAction:action, client, option)
 {
 	if(action == MenuAction_Select)
 	{
+		for (new i=1; i <= MaxClients; i++)
+			if (IsClientInGame(i) && IsPlayerAlive(i))
+				if (IsStuckInEnt(i, g_iSelectedProp[client]))
+				{
+					PrintToChat(client, "\x01You cannot move props onto \x04Players!");
+					TeleportEntity(g_iSelectedProp[client], g_vecSelectedPropPrevPos[client], g_vecSelectedPropPrevAng[client], NULL_VECTOR);
+					break;
+				}
 		SDKUnhook(client, SDKHook_PreThink, PropManip);
 		SetEntityMoveType(client, MOVETYPE_WALK);
 		EmitSoundToClient(client, SOUND_MANIPSAVE, _, _, _, _, _, 50);
@@ -1322,9 +1324,13 @@ TFS_ShowAdminMenu(client)
 {
 	new Handle:menu = CreateMenu(AdminMenu);
 	SetMenuTitle(menu, "TFS Redux - Admin Menu");
-	
-	AddMenuItem(menu, "to", " Take Ownership of Prop");
+
+	AddMenuItem(menu, "to", "Take Ownership of Prop");
 	AddMenuItem(menu, "fcp", "Force-Clear a Player's Props")
+	AddMenuItem(menu, "reset", "Reset a Player's Prop Count")
+	AddMenuItem(menu, "max", "Set a Player's Prop Count to Max")
+	AddMenuItem(menu, "rld", "Reload proplist.cfg")
+
 
 	SetMenuExitBackButton(menu, true);
 	DisplayMenu(menu, client, 720);
@@ -1343,7 +1349,7 @@ public int AdminMenu(Menu menu, MenuAction action, int client, int option)
 
 			new String:item[64];
 			GetMenuItem(menu, option, item, sizeof(item));
-
+			
 			if (StrEqual(item, "to"))
 			{
                 TakeOwnership(client);
@@ -1351,6 +1357,20 @@ public int AdminMenu(Menu menu, MenuAction action, int client, int option)
 			else if (StrEqual(item, "fcp"))
 			{
 				ShowMenu_AdminFCP(client);
+			}
+			else if (StrEqual(item, "reset"))
+			{
+				ShowMenu_AdminResetPC(client);
+			}
+			else if (StrEqual(item, "max"))
+			{
+				ShowMenu_AdminMax(client);
+			}
+			else if (StrEqual(item, "rld"))
+			{
+				new String:hc[PLATFORM_MAX_PATH];
+				BuildPath(Path_SM, hc, sizeof(hc), "configs/TFS/proplist.cfg");
+				ParseConfigFile(hc);
 			}
 		}
 
@@ -1423,6 +1443,83 @@ public int AdminFCP(Menu menu, MenuAction action, int client, int param2)
 	return 0;
 }
 
+ShowMenu_AdminResetPC(client)
+{
+	new Handle:menu = CreateMenu(AdminResetPC);
+	SetMenuTitle(menu, "TFS Redux - Select a player to reset their propcount!");
+
+	AddTargetsToMenu(menu, client, true, false);
+
+	SetMenuExitBackButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+
+public int AdminResetPC(Menu menu, MenuAction action, int client, int param2)
+{
+	switch (action)
+	{
+		case MenuAction_Cancel:
+		{
+			TFS_ShowAdminMenu(client);
+		}
+		case MenuAction_Select:
+        {    
+			new String:sInfo[MAX_NAME_LENGTH];
+			GetMenuItem(menu, param2, sInfo, sizeof(sInfo));
+			new target = GetClientOfUserId(StringToInt(sInfo));
+			g_iPropCount[target] = 0;
+
+			ReplyToCommand(client, "You reset %N's propcount!", target);
+        }
+
+		case MenuAction_End:
+		{
+			CloseHandle(menu);
+		}
+
+	}
+	return 0;
+}
+
+ShowMenu_AdminMax(client)
+{
+	new Handle:menu = CreateMenu(AdminMax);
+	SetMenuTitle(menu, "TFS Redux - Set a player's propcount to max");
+
+	AddTargetsToMenu(menu, client, true, false);
+
+	SetMenuExitBackButton(menu, true);
+	DisplayMenu(menu, client, 720);
+}
+
+public int AdminMax(Menu menu, MenuAction action, int client, int param2)
+{
+	switch (action)
+	{
+		case MenuAction_Cancel:
+		{
+			TFS_ShowAdminMenu(client);
+		}
+		case MenuAction_Select:
+        {    
+			new String:sInfo[MAX_NAME_LENGTH];
+			GetMenuItem(menu, param2, sInfo, sizeof(sInfo));
+			new target = GetClientOfUserId(StringToInt(sInfo));
+			new prop_limit_ = GetConVarInt(prop_limit);
+			g_iPropCount[target] = prop_limit_;
+
+			ReplyToCommand(client, "You set %N's propcount to %i!", target, prop_limit_);
+        }
+
+		case MenuAction_End:
+		{
+			CloseHandle(menu);
+		}
+
+	}
+	return 0;
+}
+
 /////////////////
 /*Admin Actions*/
 /////////////////
@@ -1471,3 +1568,26 @@ ForceClearProps(client, args)
 	return Plugin_Handled;
 }
 */
+
+//////////////////////////
+/*Stuck Player Preventer*/
+//////////////////////////
+
+stock bool:IsStuckInEnt(client, ent)
+{
+    decl Float:vecMin[3], Float:vecMax[3], Float:vecOrigin[3];
+    
+    GetClientMins(client, vecMin);
+    GetClientMaxs(client, vecMax);
+    
+    GetClientAbsOrigin(client, vecOrigin);
+    
+    TR_TraceHullFilter(vecOrigin, vecOrigin, vecMin, vecMax, MASK_ALL, TraceRayHitOnlyEnt, ent);
+    return TR_DidHit();
+}
+
+
+public bool:TraceRayHitOnlyEnt(entityhit, mask, any:data)
+{
+    return entityhit==data;
+}
