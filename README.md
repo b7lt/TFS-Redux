@@ -13,15 +13,6 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 - Player collision check after prop manipulation. This stops propblocking
 ```
 
-
-## Improvements upon the original:
-```
-- No more hardcoded prop lists. (This caused THOUSANDS more lines of unnecessary code)
-- An Admin Menu for the plugin so that Administators can do their job easier
-- Now public and open source!
-- More coming soon.
-```
-
 ## CREDITS:
 - KTM: He developed the original TFS Plugin that was used for the {SuN} and {SuN} Revived servers.
 - chundo: His 'Help Menu' plugin helped me learn how to use config files to create menus.
