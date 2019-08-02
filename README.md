@@ -10,6 +10,7 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 - Delete a single prop you are looking at, or clear all of your props at once!
 - Cvar that sets everyone's personal prop limit!: sm_tfs_proplimit (def. 50)
 - TFS Admin Menu
+- Player collision check after prop manipulation. This stops propblocking
 ```
 
 
@@ -29,7 +30,6 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 
 ## To do:
 ```
-- Finish the Admin Menu (need to add resetting player propcount, or setting it to the max)
 - Add more props to proplist.cfg (event props, weapon mdls, hat mdls, etc)
 - Personal player settings (manipulate beam color, POSSIBLE different entity types such as prop_physics, etc)
 - Dead/Spec Player Checks
