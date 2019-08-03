@@ -4,7 +4,7 @@ Team Fortress Sandbox Redux. A rewritten and improved version of the original TF
 
 ## Features (so far):
 ```
-- Spawn in props! Edit the prop list by editing proplist.cfg.
+- Spawn in props! Edit the prop list by editing proplist.cfg. Old plugin had hardcoded prop lists
 - Move and rotate props around via the Manipulate menu!
 - Edit various properties of props, such as rotation, color, collision, transparency, saturation, and size with the Edit menu!
 - Delete a single prop you are looking at, or clear all of your props at once!
