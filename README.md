@@ -1,5 +1,5 @@
 # TFS Redux
-Team Fortress Sandbox Redux. A rewritten and improved version of the original TFS plugin developed by KTM.
+Place prop_dynamic_overrides, edit their appearance and properties, and build cool stuff! This is an updated and improved version of KTM's TFS plugin (short for Team Fortress Sandbox).
 
 
 ## Features (so far):
